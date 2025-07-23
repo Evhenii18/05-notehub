@@ -1,6 +1,8 @@
- export interface Note {
-  id: string;
+export type Note = {
+  id: number;
   title: string;
   content: string;
-  tag: 'Todo' | 'Work' | 'Personal' | 'Meeting' | 'Shopping';
-}
+  tag: "personal" | "work" | "important";
+  createdAt: string;
+  updatedAt: string;
+};
