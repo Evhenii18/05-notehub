@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import debounce from "lodash/debounce";
 import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
@@ -8,27 +8,17 @@ import NoteForm from "../NoteForm/NoteForm";
 import css from "./App.module.css";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, deleteNote } from "../../services/noteService";
+import type { FetchNotesResponse } from "../../services/noteService";
+
+const ITEMS_PER_PAGE = 12;
 
 const App: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const updateItemsPerPage = () => {
-      const availableHeight = window.innerHeight - 250;
-      const itemHeight = 150;
-      const perPage = Math.max(1, Math.floor(availableHeight / itemHeight));
-      setItemsPerPage(perPage);
-    };
-    updateItemsPerPage();
-    window.addEventListener("resize", updateItemsPerPage);
-    return () => window.removeEventListener("resize", updateItemsPerPage);
-  }, []);
 
   const debouncedSetSearch = useMemo(
     () =>
@@ -39,14 +29,9 @@ const App: React.FC = () => {
     []
   );
 
-  const handleSearchChange = (value: string) => {
-    setInputValue(value);
-    debouncedSetSearch(value);
-  };
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["notes", currentPage, search, itemsPerPage],
-    queryFn: () => fetchNotes(currentPage, itemsPerPage, search),
+  const { data, isLoading, isError } = useQuery<FetchNotesResponse, Error>({
+    queryKey: ["notes", currentPage, search],
+    queryFn: () => fetchNotes(currentPage, ITEMS_PER_PAGE, search),
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
@@ -62,11 +47,24 @@ const App: React.FC = () => {
     deleteMutation.mutate(id);
   };
 
+  const handleNoteCreated = () => {
+    setIsModalOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["notes"] });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setInputValue(value);
+    debouncedSetSearch(value);
+  };
+
   return (
-    <div className={css.app}>
+    <div
+      className={css.app}
+      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
+    >
       <header className={css.header}>
         <SearchBox value={inputValue} onChange={handleSearchChange} />
-        {data?.totalPages !== undefined && (
+        {data?.totalPages && (
           <Pagination
             currentPage={currentPage}
             onPageChange={setCurrentPage}
@@ -77,7 +75,7 @@ const App: React.FC = () => {
           Create note +
         </button>
       </header>
-      <main className={css.main}>
+      <main className={css.main} style={{ flexGrow: 1, overflowY: "auto" }}>
         {isLoading && <p>Loading...</p>}
         {isError && <p>Error loading notes.</p>}
         {!isLoading && data && (
@@ -86,7 +84,10 @@ const App: React.FC = () => {
       </main>
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm onCancel={() => setIsModalOpen(false)} />
+          <NoteForm
+            onCancel={() => setIsModalOpen(false)}
+            onCreated={handleNoteCreated}
+          />
         </Modal>
       )}
     </div>

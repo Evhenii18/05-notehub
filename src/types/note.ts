@@ -2,7 +2,7 @@ export type Note = {
   id: number;
   title: string;
   content: string;
-  tag: "personal" | "work" | "important";
+  tag: "toDo" | "work" | "important";
   createdAt: string;
   updatedAt: string;
 };
