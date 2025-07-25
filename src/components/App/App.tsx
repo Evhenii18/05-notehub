@@ -4,16 +4,17 @@ import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
 import SearchBox from "../SearchBox/SearchBox";
 import Modal from "../Modal/Modal";
-import NoteForm from "../NoteForm/NoteForm";
+import NoteForm, { type NoteFormValues } from "../NoteForm/NoteForm";
 import css from "./App.module.css";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, createNote, deleteNote } from "../../services/noteService";
+import { fetchNotes, createNote } from "../../services/noteService";
 import type { Note } from "../../types/note";
 
 type FetchNotesResult = {
   notes: Note[];
   totalPages: number;
 };
+
 const ITEMS_PER_PAGE = 12;
 
 const App: React.FC = () => {
@@ -42,6 +43,7 @@ const App: React.FC = () => {
     queryKey: ["notes", currentPage, search],
     queryFn: () => fetchNotes(currentPage, ITEMS_PER_PAGE, search),
     staleTime: 5 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   const createMutation = useMutation({
@@ -52,19 +54,13 @@ const App: React.FC = () => {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const handleCreateNote = (note: Omit<Note, "id">) => {
-    createMutation.mutate(note);
-  };
-
-  const handleDeleteNote = (id: number) => {
-    deleteMutation.mutate(id);
+  const handleCreateNote = (note: NoteFormValues) => {
+    const now = new Date().toISOString();
+    createMutation.mutate({
+      ...note,
+      createdAt: now,
+      updatedAt: now,
+    });
   };
 
   return (
@@ -88,9 +84,7 @@ const App: React.FC = () => {
       <main className={css.main} style={{ flexGrow: 1, overflowY: "auto" }}>
         {isLoading && <p>Loading...</p>}
         {isError && <p>Error loading notes.</p>}
-        {!isLoading && data && (
-          <NoteList notes={data.notes} onDelete={handleDeleteNote} />
-        )}
+        {!isLoading && data && <NoteList notes={data.notes} />}
       </main>
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
