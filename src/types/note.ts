@@ -1,8 +1,10 @@
-export type Note = {
-  id: number;
+export type NoteTag = 'Todo' | 'Work' | 'Personal' | 'Meeting' | 'Shopping';
+
+export interface Note {
+  id: number;                
   title: string;
   content: string;
-  tag: "toDo" | "work" | "important";
-  createdAt: string;
-  updatedAt: string;
-};
+  tag: NoteTag;
+  createdAt: string;      
+  updatedAt: string;       
+}

@@ -7,9 +7,13 @@ import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
 import css from "./App.module.css";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, deleteNote } from "../../services/noteService";
-import type { FetchNotesResponse } from "../../services/noteService";
+import { fetchNotes, createNote, deleteNote } from "../../services/noteService";
+import type { Note } from "../../types/note";
 
+type FetchNotesResult = {
+  notes: Note[];
+  totalPages: number;
+};
 const ITEMS_PER_PAGE = 12;
 
 const App: React.FC = () => {
@@ -29,11 +33,23 @@ const App: React.FC = () => {
     []
   );
 
-  const { data, isLoading, isError } = useQuery<FetchNotesResponse, Error>({
+  const handleSearchChange = (value: string) => {
+    setInputValue(value);
+    debouncedSetSearch(value);
+  };
+
+  const { data, isLoading, isError } = useQuery<FetchNotesResult, Error>({
     queryKey: ["notes", currentPage, search],
     queryFn: () => fetchNotes(currentPage, ITEMS_PER_PAGE, search),
     staleTime: 5 * 60 * 1000,
-    placeholderData: (prev) => prev,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      setIsModalOpen(false);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -43,18 +59,12 @@ const App: React.FC = () => {
     },
   });
 
+  const handleCreateNote = (note: Omit<Note, "id">) => {
+    createMutation.mutate(note);
+  };
+
   const handleDeleteNote = (id: number) => {
     deleteMutation.mutate(id);
-  };
-
-  const handleNoteCreated = () => {
-    setIsModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["notes"] });
-  };
-
-  const handleSearchChange = (value: string) => {
-    setInputValue(value);
-    debouncedSetSearch(value);
   };
 
   return (
@@ -64,7 +74,7 @@ const App: React.FC = () => {
     >
       <header className={css.header}>
         <SearchBox value={inputValue} onChange={handleSearchChange} />
-        {data?.totalPages && (
+        {data?.totalPages && data.totalPages > 0 && (
           <Pagination
             currentPage={currentPage}
             onPageChange={setCurrentPage}
@@ -85,8 +95,8 @@ const App: React.FC = () => {
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm
+            onSubmit={handleCreateNote}
             onCancel={() => setIsModalOpen(false)}
-            onCreated={handleNoteCreated}
           />
         </Modal>
       )}
