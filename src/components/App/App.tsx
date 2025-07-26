@@ -4,10 +4,10 @@ import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
 import SearchBox from "../SearchBox/SearchBox";
 import Modal from "../Modal/Modal";
-import NoteForm, { type NoteFormValues } from "../NoteForm/NoteForm";
+import NoteForm from "../NoteForm/NoteForm";
 import css from "./App.module.css";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, createNote } from "../../services/noteService";
+import { useQuery } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
 import type { Note } from "../../types/note";
 
 type FetchNotesResult = {
@@ -22,8 +22,6 @@ const App: React.FC = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const queryClient = useQueryClient();
 
   const debouncedSetSearch = useMemo(
     () =>
@@ -45,25 +43,6 @@ const App: React.FC = () => {
     staleTime: 5 * 60 * 1000,
     placeholderData: (previousData) => previousData,
   });
-
-  const createMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-    },
-    onError: (error: unknown) => {
-      if (error instanceof Error) {
-        console.error("Create note error:", error.message);
-      } else {
-        console.error("Create note error:", error);
-      }
-    },
-  });
-
-  const handleCreateNote = (note: NoteFormValues) => {
-    createMutation.mutate(note);
-  };
 
   return (
     <div
@@ -101,10 +80,7 @@ const App: React.FC = () => {
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm
-            onSubmit={handleCreateNote}
-            onCancel={() => setIsModalOpen(false)}
-          />
+          <NoteForm onCancel={() => setIsModalOpen(false)} />
         </Modal>
       )}
     </div>
