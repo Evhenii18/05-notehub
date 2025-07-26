@@ -38,7 +38,7 @@ export const fetchNotes = async (
 };
 
 export const createNote = async (
-  note: Omit<Note, "id">
+  note: Omit<Note, "id" | "createdAt" | "updatedAt">
 ): Promise<Note> => {
   const response = await axios.post<Note>(
     `${BASE_URL}/notes`,
@@ -48,7 +48,6 @@ export const createNote = async (
 
   return response.data;
 };
-
 export const deleteNote = async (id: number): Promise<Note> => {
   const response = await axios.delete<Note>(
     `${BASE_URL}/notes/${id}`,

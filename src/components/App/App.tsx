@@ -52,15 +52,17 @@ const App: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["notes"] });
       setIsModalOpen(false);
     },
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        console.error("Create note error:", error.message);
+      } else {
+        console.error("Create note error:", error);
+      }
+    },
   });
 
   const handleCreateNote = (note: NoteFormValues) => {
-    const now = new Date().toISOString();
-    createMutation.mutate({
-      ...note,
-      createdAt: now,
-      updatedAt: now,
-    });
+    createMutation.mutate(note);
   };
 
   return (
@@ -70,22 +72,33 @@ const App: React.FC = () => {
     >
       <header className={css.header}>
         <SearchBox value={inputValue} onChange={handleSearchChange} />
-        {data?.totalPages && data.totalPages > 0 && (
+
+        {data?.totalPages && data.totalPages > 1 && (
           <Pagination
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             pageCount={data.totalPages}
           />
         )}
+
         <button className={css.button} onClick={() => setIsModalOpen(true)}>
           Create note +
         </button>
       </header>
+
       <main className={css.main} style={{ flexGrow: 1, overflowY: "auto" }}>
         {isLoading && <p>Loading...</p>}
         {isError && <p>Error loading notes.</p>}
-        {!isLoading && data && <NoteList notes={data.notes} />}
+
+        {!isLoading && data && data.notes.length > 0 && (
+          <NoteList notes={data.notes} />
+        )}
+
+        {!isLoading && data && data.notes.length === 0 && (
+          <p>No notes found.</p>
+        )}
       </main>
+
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm
